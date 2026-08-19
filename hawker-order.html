@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+<title>Uncle Tan's Noodle House — Order</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Work+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  /* ============ DESIGN TOKENS ============ */
+  :root{
+    --red:        #C6362B;   /* painted signboard red */
+    --red-dark:   #9C2A21;
+    --turmeric:   #E8A93B;   /* curry / fried food yellow */
+    --charcoal:   #262220;   /* char, ink, text */
+    --cream:      #F6EEDD;   /* enamel plate background */
+    --cream-dim:  #EDE3CC;
+    --leaf:       #4B7256;   /* banana-leaf green, fresh/veg accent */
+    --steel:      #8C8478;   /* tray grey, muted utility */
+    --white:      #FFFDF8;
+
+    --font-display: 'Anton', sans-serif;
+    --font-body:    'Work Sans', sans-serif;
+    --font-mono:    'JetBrains Mono', monospace;
+
+    --radius: 14px;
+    --shadow: 0 6px 18px rgba(38,34,32,0.14);
+  }
+
+  *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body{ margin:0; padding:0; }
+  body{
+    font-family: var(--font-body);
+    background: var(--cream);
+    color: var(--charcoal);
+    max-width: 480px;
+    margin: 0 auto;
+    min-height: 100vh;
+    position: relative;
+    padding-bottom: 96px;
+    overscroll-behavior-y: contain;
+  }
+  h1,h2,h3{ font-family: var(--font-display); font-weight:400; letter-spacing:0.3px; margin:0; }
+  button{ font-family: var(--font-body); border:none; cursor:pointer; -webkit-tap-highlight-color:transparent; }
+  img,svg{ display:block; }
+  :focus-visible{ outline: 3px solid var(--turmeric); outline-offset: 2px; }
+
+  /* ============ HEADER ============ */
+  .stall-header{
+    background: var(--red);
+    color: var(--white);
+    padding: 18px 18px 22px;
+    position: sticky;
+    top: 0;
+    z-index: 30;
+    box-shadow: var(--shadow);
+  }
+  .stall-header .row{ display:flex; align-items:flex-start; justify-content:space-between; gap:10px; }
+  .stall-name{ font-size: 30px; line-height:1; text-transform:uppercase; }
+  .stall-sub{ font-size: 12.5px; opacity:0.85; margin-top:6px; font-weight:500; }
+  .queue-badge{
+    background: var(--turmeric);
+    color: var(--charcoal);
+    font-family: var(--font-mono);
+    font-weight:700;
+    font-size: 13px;
+    padding: 7px 10px;
+    border-radius: 8px;
+    text-align:center;
+    white-space:nowrap;
+  }
+  .queue-badge span{ display:block; font-size:9px; font-weight:500; letter-spacing:0.08em; text-transform:uppercase; opacity:0.75; margin-bottom:2px; }
+
+  /* ============ CATEGORY CHIPS ============ */
+  .categories{
+    display:flex; gap:8px; overflow-x:auto;
+    padding: 12px 14px; position: sticky; top: 84px; z-index:29;
+    background: var(--cream); border-bottom: 1px solid var(--cream-dim);
+    scrollbar-width:none;
+  }
+  .categories::-webkit-scrollbar{ display:none; }
+  .chip{
+    flex:0 0 auto;
+    background: var(--white);
+    border: 1.5px solid var(--cream-dim);
+    color: var(--charcoal);
+    padding: 8px 14px;
+    border-radius: 999px;
+    font-size: 13.5px;
+    font-weight:600;
+    transition: all .15s ease;
+  }
+  .chip.active{ background: var(--charcoal); color: var(--white); border-color:var(--charcoal); }
+
+  /* ============ MENU ============ */
+  .menu{ padding: 6px 14px 10px; }
+  .cat-title{
+    font-size: 20px; color: var(--red-dark);
+    margin: 22px 2px 10px; display:flex; align-items:center; gap:8px;
+  }
+  .cat-title::after{ content:""; flex:1; height:2px; background: repeating-linear-gradient(90deg, var(--cream-dim) 0 6px, transparent 6px 10px); }
+
+  .item-card{
+    background: var(--white);
+    border-radius: var(--radius);
+    padding: 12px;
+    display:flex; gap:12px;
+    margin-bottom: 10px;
+    box-shadow: 0 2px 6px rgba(38,34,32,0.06);
+    border: 1px solid rgba(38,34,32,0.05);
+  }
+  .item-emoji{
+    flex:0 0 56px; height:56px; border-radius:10px;
+    background: var(--cream-dim);
+    display:flex; align-items:center; justify-content:center;
+    font-size: 28px;
+  }
+  .item-info{ flex:1; min-width:0; }
+  .item-name{ font-size:15.5px; font-weight:700; margin-bottom:2px; }
+  .item-desc{ font-size:12.5px; color: var(--steel); line-height:1.35; margin-bottom:8px; }
+  .item-bottom{ display:flex; align-items:center; justify-content:space-between; }
+  .item-price{ font-family: var(--font-mono); font-weight:700; font-size:14px; color:var(--charcoal); }
+  .item-tag{ font-size:10px; font-weight:700; color:var(--leaf); border:1px solid var(--leaf); border-radius:5px; padding:1px 5px; margin-left:6px; vertical-align:1px; }
+
+  .stepper{ display:flex; align-items:center; gap:0; }
+  .stepper button{
+    width:26px; height:26px; border-radius:7px;
+    background: var(--cream-dim); color:var(--charcoal);
+    font-size:16px; font-weight:700; line-height:1;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .stepper button.add-btn{ width:auto; padding:6px 14px; background:var(--red); color:var(--white); border-radius:8px; font-size:13px; font-weight:700; }
+  .stepper .qty{ width:26px; text-align:center; font-family:var(--font-mono); font-weight:700; font-size:14px; }
+
+  /* ============ FLOATING CART BAR ============ */
+  .cart-bar{
+    position: fixed;
+    bottom: 14px; left:50%; transform: translateX(-50%);
+    width: calc(100% - 28px); max-width: 452px;
+    background: var(--charcoal);
+    color: var(--white);
+    border-radius: 14px;
+    padding: 13px 16px;
+    display:flex; align-items:center; justify-content:space-between;
+    box-shadow: 0 10px 24px rgba(38,34,32,0.35);
+    z-index: 40;
+    transition: transform .2s ease, opacity .2s ease;
+  }
+  .cart-bar.hidden{ transform: translateX(-50%) translateY(120%); opacity:0; pointer-events:none; }
+  .cart-bar .left{ display:flex; align-items:center; gap:10px; }
+  .cart-count{
+    background: var(--turmeric); color:var(--charcoal);
+    font-family:var(--font-mono); font-weight:700; font-size:12.5px;
+    width:24px; height:24px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .cart-bar .label{ font-size:14px; font-weight:600; }
+  .cart-bar .total{ font-family:var(--font-mono); font-weight:700; font-size:15px; color:var(--turmeric); }
+
+  /* ============ SHEET (CART / CONFIRM) ============ */
+  .scrim{
+    position:fixed; inset:0; background:rgba(38,34,32,0.5);
+    opacity:0; pointer-events:none; transition:opacity .2s ease; z-index:50;
+  }
+  .scrim.show{ opacity:1; pointer-events:auto; }
+  .sheet{
+    position:fixed; left:50%; bottom:0; transform:translate(-50%, 100%);
+    width:100%; max-width:480px;
+    background: var(--white);
+    border-radius: 20px 20px 0 0;
+    z-index:51;
+    transition: transform .28s cubic-bezier(.32,.72,0,1);
+    max-height: 86vh; display:flex; flex-direction:column;
+  }
+  .sheet.show{ transform:translate(-50%, 0); }
+  .sheet-handle{ width:36px; height:4px; background:var(--cream-dim); border-radius:99px; margin:10px auto 4px; }
+  .sheet-header{ padding: 8px 20px 12px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid var(--cream-dim); }
+  .sheet-header h2{ font-size:22px; color:var(--red-dark); }
+  .sheet-close{ background:var(--cream-dim); width:30px; height:30px; border-radius:50%; font-size:16px; font-weight:700; color:var(--charcoal); }
+  .sheet-body{ padding: 14px 20px; overflow-y:auto; flex:1; }
+  .sheet-footer{ padding: 14px 20px calc(14px + env(safe-area-inset-bottom)); border-top:1px solid var(--cream-dim); }
+
+  .cart-row{ display:flex; align-items:center; gap:10px; padding: 10px 0; border-bottom:1px dashed var(--cream-dim); }
+  .cart-row:last-child{ border-bottom:none; }
+  .cart-row .info{ flex:1; }
+  .cart-row .name{ font-weight:700; font-size:14.5px; }
+  .cart-row .unit{ font-size:11.5px; color:var(--steel); font-family:var(--font-mono); }
+  .cart-row .line-total{ font-family:var(--font-mono); font-weight:700; font-size:14px; width:64px; text-align:right; }
+  .empty-cart{ text-align:center; padding: 30px 10px; color:var(--steel); }
+  .empty-cart .big{ font-size:38px; margin-bottom:8px; }
+
+  .summary-row{ display:flex; justify-content:space-between; font-size:13.5px; color:var(--steel); padding:3px 0; }
+  .summary-row.total{ font-size:17px; font-weight:700; color:var(--charcoal); padding-top:8px; margin-top:4px; border-top:1.5px solid var(--charcoal); }
+  .summary-row.total .amt{ font-family:var(--font-mono); }
+
+  .field-label{ font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; color:var(--steel); margin:14px 0 6px; }
+  .table-select{ display:flex; gap:8px; flex-wrap:wrap; }
+  .table-opt{
+    border:1.5px solid var(--cream-dim); background:var(--white); padding:8px 12px;
+    border-radius:9px; font-size:13.5px; font-weight:600; font-family:var(--font-mono);
+  }
+  .table-opt.active{ background:var(--leaf); border-color:var(--leaf); color:var(--white); }
+
+  .place-order-btn{
+    width:100%; background:var(--red); color:var(--white);
+    padding:15px; border-radius:12px; font-size:16px; font-weight:700;
+    display:flex; align-items:center; justify-content:space-between; padding-left:18px; padding-right:18px;
+  }
+  .place-order-btn:disabled{ background: var(--steel); }
+  .place-order-btn .amt{ font-family:var(--font-mono); }
+
+  /* ============ TICKET (order confirmation) ============ */
+  .ticket-wrap{ padding: 6px 20px 20px; }
+  .ticket{
+    background: var(--white);
+    border-radius: 4px;
+    position: relative;
+    padding: 26px 20px 22px;
+    text-align:center;
+    box-shadow: var(--shadow);
+  }
+  .ticket::before, .ticket::after{
+    content:""; position:absolute; left:0; right:0; height:10px;
+    background:
+      radial-gradient(circle at 8px 5px, transparent 6px, var(--cream) 6.5px) repeat-x;
+    background-size: 16px 10px;
+  }
+  .ticket::before{ top:-5px; }
+  .ticket::after{ bottom:-5px; transform: rotate(180deg); }
+  .ticket .eyebrow{ font-size:11px; letter-spacing:0.12em; text-transform:uppercase; color:var(--steel); font-weight:700; }
+  .ticket .order-no{ font-family:var(--font-mono); font-size:52px; font-weight:700; color:var(--red); line-height:1.1; margin:6px 0 2px; }
+  .ticket .wait{ font-size:13px; color:var(--leaf); font-weight:700; margin-bottom:16px; }
+  .ticket-items{ text-align:left; border-top:1px dashed var(--cream-dim); border-bottom:1px dashed var(--cream-dim); padding:12px 0; margin-bottom:12px; }
+  .ticket-items .trow{ display:flex; justify-content:space-between; font-size:13px; padding:3px 0; }
+  .ticket-items .trow .n{ font-weight:600; }
+  .ticket-items .trow .p{ font-family:var(--font-mono); color:var(--steel); }
+  .ticket .grand{ display:flex; justify-content:space-between; font-size:15px; font-weight:700; }
+  .ticket .grand .amt{ font-family:var(--font-mono); color:var(--red); }
+  .new-order-btn{
+    width:100%; margin-top:16px; background:var(--charcoal); color:var(--white);
+    padding:14px; border-radius:12px; font-weight:700; font-size:14.5px;
+  }
+
+  .hidden-el{ display:none !important; }
+</style>
+</head>
+<body>
+
+  <!-- ============ HEADER ============ -->
+  <header class="stall-header">
+    <div class="row">
+      <div>
+        <h1 class="stall-name">Uncle Tan's<br>Noodle House</h1>
+        <div class="stall-sub">Lot 14, Jalan Pasar Hawker Centre</div>
+      </div>
+      <div class="queue-badge"><span>Table</span>No. 07</div>
+    </div>
+  </header>
+
+  <!-- ============ CATEGORY CHIPS ============ -->
+  <nav class="categories" id="categoryNav"></nav>
+
+  <!-- ============ MENU ============ -->
+  <main class="menu" id="menuList"></main>
+
+  <!-- ============ FLOATING CART BAR ============ -->
+  <button class="cart-bar hidden" id="cartBar">
+    <div class="left">
+      <div class="cart-count" id="cartCount">0</div>
+      <div class="label">View order</div>
+    </div>
+    <div class="total" id="cartBarTotal">RM 0.00</div>
+  </button>
+
+  <!-- ============ SCRIM ============ -->
+  <div class="scrim" id="scrim"></div>
+
+  <!-- ============ CART SHEET ============ -->
+  <section class="sheet" id="cartSheet" aria-label="Your order">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header">
+      <h2>Your Order</h2>
+      <button class="sheet-close" id="closeCart" aria-label="Close">✕</button>
+    </div>
+    <div class="sheet-body" id="cartBody"></div>
+    <div class="sheet-footer" id="cartFooter"></div>
+  </section>
+
+  <!-- ============ CONFIRMATION SHEET ============ -->
+  <section class="sheet" id="confirmSheet" aria-label="Order confirmed">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header">
+      <h2>Order Placed</h2>
+      <button class="sheet-close" id="closeConfirm" aria-label="Close">✕</button>
+    </div>
+    <div class="sheet-body">
+      <div class="ticket-wrap">
+        <div class="ticket">
+          <div class="eyebrow">Uncle Tan's Noodle House</div>
+          <div class="order-no" id="ticketOrderNo">A12</div>
+          <div class="wait" id="ticketWait">Ready in ~12 minutes</div>
+          <div class="ticket-items" id="ticketItems"></div>
+          <div class="grand"><span>Total paid at counter</span><span class="amt" id="ticketTotal">RM 0.00</span></div>
+        </div>
+        <button class="new-order-btn" id="newOrderBtn">Start a new order</button>
+      </div>
+    </div>
+  </section>
+
+<script>
+/* =========================================================================
+   STALL OWNER CONFIG
+   Edit STALL and MENU below to set up this page for your own stall.
+   Each menu item needs: id, name, desc, price (in RM), emoji, tag (optional)
+   ========================================================================= */
+const STALL = {
+  name: "Uncle Tan's Noodle House",
+  location: "Lot 14, Jalan Pasar Hawker Centre",
+  tableNumber: "07"
+};
+
+const MENU = [
+  { cat: "Noodles", items: [
+    { id:"n1", name:"Char Kway Teow", desc:"Wok-fried flat rice noodles, prawn, egg, bean sprouts", price:9.50, emoji:"🍜" },
+    { id:"n2", name:"Wonton Mee", desc:"Springy egg noodles, char siu, dumplings, dark soy", price:8.00, emoji:"🥟" },
+    { id:"n3", name:"Curry Mee", desc:"Coconut curry broth, tofu puff, cockles, noodles", price:9.00, emoji:"🍲", tag:"Spicy" },
+  ]},
+  { cat: "Rice Dishes", items: [
+    { id:"r1", name:"Nasi Lemak Special", desc:"Coconut rice, fried chicken, sambal, egg, anchovies", price:10.50, emoji:"🍛", tag:"Spicy" },
+    { id:"r2", name:"Hainanese Chicken Rice", desc:"Poached chicken, fragrant rice, ginger-chilli sauce", price:8.50, emoji:"🍗" },
+    { id:"r3", name:"Economy Rice (3 dishes)", desc:"Choice of 3 dishes over steamed rice", price:9.00, emoji:"🍚" },
+  ]},
+  { cat: "Sides", items: [
+    { id:"s1", name:"Fried Wonton (6pc)", desc:"Crispy prawn wontons, sweet chilli dip", price:5.00, emoji:"🥠" },
+    { id:"s2", name:"Kangkung Belacan", desc:"Stir-fried water spinach, shrimp paste, chilli", price:6.00, emoji:"🥬", tag:"Spicy" },
+  ]},
+  { cat: "Drinks", items: [
+    { id:"d1", name:"Teh Tarik", desc:"Pulled milk tea, served hot", price:3.00, emoji:"🥤" },
+    { id:"d2", name:"Iced Lime Juice", desc:"Fresh calamansi lime, lightly sweetened", price:3.50, emoji:"🍋" },
+    { id:"d3", name:"Barley Water", desc:"Chilled, served with winter melon", price:3.00, emoji:"🧊" },
+  ]},
+];
+
+/* ========================================================================= */
+
+const state = {
+  cart: {},          // itemId -> qty
+  activeCategory: MENU[0].cat,
+  tableNumber: STALL.tableNumber
+};
+
+const fmt = (n) => "RM " + n.toFixed(2);
+const allItems = () => MENU.flatMap(g => g.items);
+const findItem = (id) => allItems().find(i => i.id === id);
+
+function cartLines(){
+  return Object.entries(state.cart)
+    .filter(([,qty]) => qty > 0)
+    .map(([id,qty]) => ({ item: findItem(id), qty }));
+}
+function cartTotal(){
+  return cartLines().reduce((sum,l) => sum + l.item.price * l.qty, 0);
+}
+function cartCount(){
+  return cartLines().reduce((sum,l) => sum + l.qty, 0);
+}
+
+/* ---------- render: category nav ---------- */
+function renderCategories(){
+  const nav = document.getElementById('categoryNav');
+  nav.innerHTML = MENU.map(g => `
+    <button class="chip ${g.cat === state.activeCategory ? 'active' : ''}" data-cat="${g.cat}">${g.cat}</button>
+  `).join('');
+  nav.querySelectorAll('.chip').forEach(btn => {
+    btn.addEventListener('click', () => {
+      state.activeCategory = btn.dataset.cat;
+      renderCategories();
+      document.getElementById('cat-section-' + cssId(btn.dataset.cat))
+        ?.scrollIntoView({ behavior:'smooth', block:'start' });
+    });
+  });
+}
+function cssId(s){ return s.replace(/\s+/g,'-').toLowerCase(); }
+
+/* ---------- render: menu ---------- */
+function renderMenu(){
+  const menuEl = document.getElementById('menuList');
+  menuEl.innerHTML = MENU.map(group => `
+    <div id="cat-section-${cssId(group.cat)}">
+      <h2 class="cat-title">${group.cat}</h2>
+      ${group.items.map(item => renderItemCard(item)).join('')}
+    </div>
+  `).join('');
+
+  menuEl.querySelectorAll('[data-add]').forEach(btn => {
+    btn.addEventListener('click', () => changeQty(btn.dataset.add, 1));
+  });
+  menuEl.querySelectorAll('[data-inc]').forEach(btn => {
+    btn.addEventListener('click', () => changeQty(btn.dataset.inc, 1));
+  });
+  menuEl.querySelectorAll('[data-dec]').forEach(btn => {
+    btn.addEventListener('click', () => changeQty(btn.dataset.dec, -1));
+  });
+}
+
+function renderItemCard(item){
+  const qty = state.cart[item.id] || 0;
+  return `
+    <div class="item-card">
+      <div class="item-emoji">${item.emoji}</div>
+      <div class="item-info">
+        <div class="item-name">${item.name}${item.tag ? `<span class="item-tag">${item.tag}</span>` : ''}</div>
+        <div class="item-desc">${item.desc}</div>
+        <div class="item-bottom">
+          <div class="item-price">${fmt(item.price)}</div>
+          ${qty === 0
+            ? `<button class="add-btn" data-add="${item.id}">Add</button>`
+            : `<div class="stepper">
+                 <button data-dec="${item.id}" aria-label="Remove one">–</button>
+                 <div class="qty">${qty}</div>
+                 <button data-inc="${item.id}" aria-label="Add one">+</button>
+               </div>`
+          }
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function changeQty(id, delta){
+  const current = state.cart[id] || 0;
+  const next = Math.max(0, current + delta);
+  state.cart[id] = next;
+  renderMenu();
+  renderCartBar();
+  if (document.getElementById('cartSheet').classList.contains('show')) renderCartSheet();
+}
+
+/* ---------- render: floating cart bar ---------- */
+function renderCartBar(){
+  const bar = document.getElementById('cartBar');
+  const count = cartCount();
+  document.getElementById('cartCount').textContent = count;
+  document.getElementById('cartBarTotal').textContent = fmt(cartTotal());
+  bar.classList.toggle('hidden', count === 0);
+}
+
+/* ---------- render: cart sheet ---------- */
+function renderCartSheet(){
+  const lines = cartLines();
+  const body = document.getElementById('cartBody');
+  const footer = document.getElementById('cartFooter');
+
+  if (lines.length === 0){
+    body.innerHTML = `<div class="empty-cart"><div class="big">🍽️</div>No items yet — add something tasty!</div>`;
+    footer.innerHTML = '';
+    return;
+  }
+
+  body.innerHTML = `
+    <div>
+      ${lines.map(l => `
+        <div class="cart-row">
+          <div class="info">
+            <div class="name">${l.item.name}</div>
+            <div class="unit">${fmt(l.item.price)} each</div>
+          </div>
+          <div class="stepper">
+            <button data-dec="${l.item.id}" aria-label="Remove one">–</button>
+            <div class="qty">${l.qty}</div>
+            <button data-inc="${l.item.id}" aria-label="Add one">+</button>
+          </div>
+          <div class="line-total">${fmt(l.item.price * l.qty)}</div>
+        </div>
+      `).join('')}
+    </div>
+    <div class="field-label">Table number</div>
+    <div class="table-select" id="tableSelect">
+      ${["05","06","07","08","09","10"].map(t => `
+        <button class="table-opt ${t === state.tableNumber ? 'active' : ''}" data-table="${t}">${t}</button>
+      `).join('')}
+    </div>
+  `;
+
+  body.querySelectorAll('[data-inc]').forEach(btn => btn.addEventListener('click', () => changeQty(btn.dataset.inc, 1)));
+  body.querySelectorAll('[data-dec]').forEach(btn => btn.addEventListener('click', () => changeQty(btn.dataset.dec, -1)));
+  body.querySelectorAll('[data-table]').forEach(btn => btn.addEventListener('click', () => {
+    state.tableNumber = btn.dataset.table;
+    renderCartSheet();
+  }));
+
+  const total = cartTotal();
+  footer.innerHTML = `
+    <div class="summary-row"><span>Subtotal</span><span>${fmt(total)}</span></div>
+    <div class="summary-row total"><span>Total</span><span class="amt">${fmt(total)}</span></div>
+    <button class="place-order-btn" id="placeOrderBtn" style="margin-top:12px;">
+      <span>Place order</span><span class="amt">${fmt(total)}</span>
+    </button>
+  `;
+  document.getElementById('placeOrderBtn').addEventListener('click', placeOrder);
+}
+
+/* ---------- order placement ---------- */
+function placeOrder(){
+  const lines = cartLines();
+  if (lines.length === 0) return;
+
+  const orderLetter = String.fromCharCode(65 + Math.floor(Math.random()*4)); // A-D
+  const orderNum = Math.floor(Math.random()*40 + 10);
+  const waitMins = Math.max(6, Math.min(20, 4 + cartCount() * 2));
+
+  document.getElementById('ticketOrderNo').textContent = orderLetter + orderNum;
+  document.getElementById('ticketWait').textContent = `Ready in ~${waitMins} minutes · Table ${state.tableNumber}`;
+  document.getElementById('ticketItems').innerHTML = lines.map(l => `
+    <div class="trow"><span class="n">${l.qty}× ${l.item.name}</span><span class="p">${fmt(l.item.price * l.qty)}</span></div>
+  `).join('');
+  document.getElementById('ticketTotal').textContent = fmt(cartTotal());
+
+  closeSheet('cartSheet');
+  openSheet('confirmSheet');
+
+  state.cart = {};
+  renderMenu();
+  renderCartBar();
+}
+
+/* ---------- sheet open/close helpers ---------- */
+function openSheet(id){
+  document.getElementById(id).classList.add('show');
+  document.getElementById('scrim').classList.add('show');
+}
+function closeSheet(id){
+  document.getElementById(id).classList.remove('show');
+  document.getElementById('scrim').classList.remove('show');
+}
+
+document.getElementById('cartBar').addEventListener('click', () => { renderCartSheet(); openSheet('cartSheet'); });
+document.getElementById('closeCart').addEventListener('click', () => closeSheet('cartSheet'));
+document.getElementById('closeConfirm').addEventListener('click', () => closeSheet('confirmSheet'));
+document.getElementById('scrim').addEventListener('click', () => { closeSheet('cartSheet'); closeSheet('confirmSheet'); });
+document.getElementById('newOrderBtn').addEventListener('click', () => closeSheet('confirmSheet'));
+
+/* ---------- init ---------- */
+document.querySelector('.stall-name').textContent = STALL.name;
+document.querySelector('.stall-sub').textContent = STALL.location;
+document.querySelector('.queue-badge').innerHTML = `<span>Table</span>No. ${STALL.tableNumber}`;
+
+renderCategories();
+renderMenu();
+renderCartBar();
+</script>
+</body>
+</html>
